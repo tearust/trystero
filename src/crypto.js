@@ -43,11 +43,10 @@ const iv_to_str = (iv)=>{
 };
 export const encrypt = async (keyP, plaintext) => {
   const iv = crypto.getRandomValues(new Uint8Array(16));
-  const chiper = keyP.chiper;
+  const {chiper} = await keyP;
   chiper.start({iv: iv_to_str(iv)});
   chiper.update(forge.util.createBuffer(plaintext));
   chiper.finish();
-  console.log(66, chiper.output);
   const xx = forge.util.encode64(chiper.output.data);
   return JSON.stringify({
     c: xx,
@@ -83,7 +82,7 @@ export const encrypt = async (keyP, plaintext) => {
 // }
 
 export const decrypt = async (keyP, raw) => {
-  const decipher = keyP.decipher;
+  const {decipher} = await keyP;
   const {c, iv} = JSON.parse(raw);
 
   decipher.start({iv: iv_to_str(iv)});
