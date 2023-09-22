@@ -64,14 +64,13 @@ export const joinRoom = initGuard(occupiedRooms, (config, ns) => {
   const infoHashP = async ()=>{
     const sha1 = forge.md.sha1.create();
     const rs = sha1.update((`${libName}:${config.appId}:${ns}`)).digest();
-    console.log(555, rs.data);
     let p = [];
     for(let i=0; i<rs.data.length; i++){
       
       const b = rs.data.charCodeAt(i);
       p.push(b.toString(36));
     }
-    const r = b.slice(0, hashLimit);
+    const r = p.join('').slice(0, hashLimit);
     return r;
   };
 
