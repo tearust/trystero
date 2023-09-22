@@ -15,6 +15,7 @@ import {
   values
 } from './utils.js'
 import {genKey, encrypt, decrypt} from './crypto.js'
+import forge from 'node-forge';
 
 const occupiedRooms = {}
 const socketPromises = {}
@@ -32,7 +33,7 @@ const defaultTrackerUrls = [
   'wss://fediverse.tv/tracker/socket',
   'wss://tracker.files.fm:7073/announce',
   'wss://tracker.openwebtorrent.com',
-  'wss://tracker.btorrent.xyz',
+  // 'wss://tracker.btorrent.xyz',
   'wss://qot.abiir.top:443/announce',
   'wss://spacetradersapi-chatbox.herokuapp.com:443/announce'
 ]
@@ -51,14 +52,27 @@ export const joinRoom = initGuard(occupiedRooms, (config, ns) => {
     throw mkErr('trackerUrls is empty')
   }
 
-  const infoHashP = crypto.subtle
-    .digest('SHA-1', encodeBytes(`${libName}:${config.appId}:${ns}`))
-    .then(buffer =>
-      Array.from(new Uint8Array(buffer))
-        .map(b => b.toString(36))
-        .join('')
-        .slice(0, hashLimit)
-    )
+  // const infoHashP = crypto.subtle
+  //   .digest('SHA-1', encodeBytes(`${libName}:${config.appId}:${ns}`))
+  //   .then(buffer =>
+  //     Array.from(new Uint8Array(buffer))
+  //       .map(b => b.toString(36))
+  //       .join('')
+  //       .slice(0, hashLimit)
+  //   )
+
+  const infoHashP = async ()=>{
+    const sha1 = forge.md.sha1.create();
+    const rs = sha1.update(encodeBytes(`${libName}:${config.appId}:${ns}`)).digest();
+
+    let p = [];
+    for(let i=0; i<rs.data.length; i++){
+      const b = rs.data.charCodeAt(i);
+      p.push(b.toString(36));
+    }
+    const r = b.slice(0, hashLimit);
+    return r;
+  };
 
   const makeOffers = howMany =>
     fromEntries(
@@ -75,7 +89,7 @@ export const joinRoom = initGuard(occupiedRooms, (config, ns) => {
   const makeOfferPool = () => makeOffers(offerPoolSize)
 
   const onSocketMessage = async (socket, e) => {
-    const infoHash = await infoHashP
+    const infoHash = await infoHashP()
     let val
 
     try {
@@ -228,7 +242,7 @@ export const joinRoom = initGuard(occupiedRooms, (config, ns) => {
   }
 
   const announceAll = async () => {
-    const infoHash = await infoHashP
+    const infoHash = await infoHashP()
 
     if (offerPool) {
       cleanPool()
@@ -290,7 +304,7 @@ export const joinRoom = initGuard(occupiedRooms, (config, ns) => {
   return room(
     f => (onPeerConnect = f),
     async () => {
-      const infoHash = await infoHashP
+      const infoHash = await infoHashP()
 
       trackerUrls.forEach(url => delete socketListeners[url][infoHash])
       delete occupiedRooms[ns]
